@@ -13,8 +13,8 @@ LIM = 25
 from pathlib import Path
 
 def main():
-    fib_iter()
-    #fib_rec()
+    #fib_iter()
+    fib_rec()
 
 def fib_iter():
     """
