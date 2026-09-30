@@ -1,0 +1,48 @@
+# This starter workflow is for a CMake project running on a single platform. There is a different starter workflow if you need cross-platform coverage.
+# See: https://github.com/actions/starter-workflows/blob/main/ci/cmake-multi-platform.yml
+name: CMake on a single platform
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+env:
+  # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
+  BUILD_TYPE: Release
+
+jobs:
+  build:
+    # The CMake configure and build commands are platform agnostic and should work equally well on Windows or Mac.
+    # You can convert this to a matrix build if you need cross-platform coverage.
+    # See: https://docs.github.com/en/free-pro-team@latest/actions/learn-github-actions/managing-complex-workflows#using-a-build-matrix
+    runs-on: ubuntu-latest
+
+    # Makefile and source is in the folder 590MakefileLab
+    defaults:
+      run:
+        working-directory: 590MakefileLab
+
+    steps:
+    - uses: actions/checkout@v4
+
+    # Clean the environment first
+    - name: Clean
+      run: make clean
+      
+    # Compile source code
+    - name: Build
+      run: make
+
+    # Run the executable fibonacci
+    - name: Run
+      run: make run
+
+    # Verify the output contains the output "55" and "1.618034"
+    - name: Verify
+      run: output="$(make run)"
+        echo "$output"
+        grep -Fq "55" <<< "$output"
+        grep -Fq "1.618034" <<< "$output"
