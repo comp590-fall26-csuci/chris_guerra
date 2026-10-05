@@ -2,3 +2,4 @@ output/*
 !output/.gitkeep
 *.o
 fibonacci
+fibonacci_test
