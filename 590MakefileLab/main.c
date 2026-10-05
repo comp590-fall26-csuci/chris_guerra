@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include "fibonacci.h"
 
+this line will break the compiler
 int main(void) {
     int term = 10;
     printf("The %dth Fibonacci number is %d\n", term, fibonacci(term));
