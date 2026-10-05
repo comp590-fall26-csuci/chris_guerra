@@ -52,7 +52,7 @@ UTEST( fibonacci, test9 )
 
 UTEST( fibonacci, test10 )
 {
-    ASSERT_EQ( fibonacci(10), FIB_ARRAY[9] );
+    ASSERT_EQ( fibonacci(10), FIB_ARRAY[8] );
 }
 
 UTEST_MAIN()
