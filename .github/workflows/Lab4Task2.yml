@@ -53,6 +53,6 @@ jobs:
     container:
       image: semgrep/semgrep
     steps:
-      - uses: actions/checkoutcheckout@v4
+      - uses: actions/checkout@v4
       - name: Scan C project
         run: semgrep scan --config auto --error 590MakefileLab
