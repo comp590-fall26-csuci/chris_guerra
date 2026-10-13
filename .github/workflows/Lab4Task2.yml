@@ -43,3 +43,16 @@ jobs:
     # Verify all tests passed using the utest output
     - name: Verify
       run: make test
+
+  # Add semgrep scanning as a new job
+  semgrep:
+    name: Semgrep Community Edition
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    container:
+      image: semgrep/semgrep
+    steps:
+      - uses: actions/checkoutcheckout@v4
+      - name: Scan C project
+        run: semgrep scan --config auto --error 590MakefileLab
