@@ -37,7 +37,7 @@ jobs:
           sudo apt-get install -y afl++ clang
 
       - name: Build instrumented program
-        run: afl-clang-fast -g -O1 590MakefileLab/dvcp.c -o dvcp-fuzz
+        run: afl-clang-fast -g -O1 dvcp.c -o dvcp-fuzz
 
       - name: Create starting input
         run: |
