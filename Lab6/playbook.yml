@@ -1,0 +1,26 @@
+- name: Setup Lab6 installations
+  hosts: local
+  become: true
+  
+  tasks:
+    - name: Install asciinema
+      apt:
+        name: asciinema
+        state: present
+        update_cache: yes
+
+    - name: Install apache2
+      apt:
+        name: apache2
+        state: present
+        update_cache: yes
+
+    - name: Enable apache2 service
+      service:
+        name: apache2
+        state: started
+        enabled: yes
+
+    - name: Custom debug message
+      debug:
+        msg: "Lab6 installation and setup complete!"
