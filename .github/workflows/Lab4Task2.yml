@@ -40,9 +40,6 @@ jobs:
     - name: Run
       run: make run
 
-    # Verify the output contains the output "55" and "1.618034"
+    # Verify all tests passed using the utest output
     - name: Verify
-      run: output="$(make run)"
-        echo "$output"
-        grep -Fq "55" <<< "$output"
-        grep -Fq "1.618034" <<< "$output"
+      run: make test
