@@ -1,0 +1,64 @@
+# This starter workflow is for a CMake project running on a single platform. There is a different starter workflow if you need cross-platform coverage.
+# See: https://github.com/actions/starter-workflows/blob/main/ci/cmake-multi-platform.yml
+name: Run AFL++ fuzz test
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+env:
+  # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
+  BUILD_TYPE: Release
+
+jobs:
+  fuzz:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    defaults:
+      run:
+        working-directory: 590MakefileLab
+        
+    env:
+      AFL_SKIP_CPUFREQ: "1"
+      AFL_I_DONT_CARE_ABOUT_MISSING_CRASHES: "1"
+      AFL_NO_UI: "1"
+
+    steps:
+      - name: Check out pull request
+        uses: actions/checkout@v4
+
+      - name: Install AFL++
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y afl++ clang
+
+      - name: Build instrumented program
+        run: afl-clang-fast -g -O1 dvcp.c -o dvcp-fuzz
+
+      - name: Create starting input
+        run: |
+          mkdir -p fuzz-input
+          printf 'test\n' > fuzz-input/seed
+
+      - name: Fuzz for three minutes
+        run: afl-fuzz -i fuzz-input -o fuzz-output -V 180 -- ./dvcp-fuzz
+
+      - name: Upload fuzzing results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: afl-results
+          path: fuzz-output/
+          if-no-files-found: ignore
+
+      - name: Fail if AFL++ found a crash
+        run: |
+          if find fuzz-output -type f -path '*/crashes/id:*' -print -quit | grep -q .; then
+            echo "AFL++ found a crash. Download the afl-results artifact for the input."
+            exit 1
+          fi
+
