@@ -1,0 +1,38 @@
+name: Build and verify Fibonacci
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        shell: bash
+        working-directory: 590MakefileLab
+
+    steps:
+      - name: Check out repository
+        uses: builtin:checkout
+
+      - name: Clean
+        run: make clean
+
+      - name: Build
+        run: make
+
+      - name: Run
+        run: make run
+
+      - name: Verify output
+        run: |
+          set -euo pipefail
+          output="$(make run)"
+          echo "$output"
+          grep -Fq "55" <<< "$output"
+          grep -Fq "1.618034" <<< "$output"
