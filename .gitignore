@@ -3,3 +3,4 @@ output/*
 *.o
 fibonacci
 fibonacci_test
+gitea

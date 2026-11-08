@@ -1,0 +1,167 @@
+- name: Install and Setup for Gitea
+  hosts: local
+  become: true
+  
+  tasks:
+    - name: Install Gitea from binary
+      ansible.builtin.shell: |
+        wget -O gitea https://dl.gitea.com/gitea/28.3.0/gitea-28.3.0-linux-amd64
+        chmod +x gitea
+        
+    - name: Add user to run Gitea
+      ansible.builtin.shell: |
+        adduser \
+          --system \
+          --shell /bin/bash \
+          --gecos 'Git Version Control' \
+          --group \
+          --disabled-password \
+          --home /home/git \
+          git
+          
+    - name: Create required directory structure
+      ansible.builtin.shell: |
+        mkdir -p /var/lib/gitea/{custom,data,log}
+        chown -R git:git /var/lib/gitea/
+        chmod -R 750 /var/lib/gitea/
+        mkdir /etc/gitea
+        chown root:git /etc/gitea
+        chmod 770 /etc/gitea
+        
+    - name: Install Gitea executable globally
+      ansible.builtin.copy:
+        src: gitea
+        dest: /usr/local/bin/gitea
+        remote_src: true
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Create Gitea service
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/gitea.service
+        mode: "0644"
+        content: |
+          [Unit]
+          Description=Gitea
+          After=network.target
+
+          [Service]
+          Type=simple
+          User=git
+          Group=git
+          WorkingDirectory=/var/lib/gitea
+          Environment=HOME=/home/git
+          Environment=GITEA_WORK_DIR=/var/lib/gitea
+          ExecStart=/usr/local/bin/gitea web --config /etc/gitea/app.ini
+          Restart=on-failure
+          RestartSec=5
+
+          [Install]
+          WantedBy=multi-user.target
+
+    - name: Start and enable Gitea
+      ansible.builtin.systemd_service:
+        name: gitea
+        daemon_reload: true
+        enabled: true
+        state: started
+
+    - name: Wait for Gitea web port
+      ansible.builtin.wait_for:
+        host: 127.0.0.1
+        port: 3000
+        timeout: 60
+
+    - name: Install local Gitea runner
+      ansible.builtin.copy:
+        src: "{{ playbook_dir }}/gitea-runner-5.4.1-linux-amd64"
+        dest: /usr/local/bin/gitea-runner
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Create runner group
+      ansible.builtin.group:
+        name: gitea-runner
+        system: true
+
+    - name: Create runner user and working directory
+      ansible.builtin.user:
+        name: gitea-runner
+        group: gitea-runner
+        system: true
+        home: /var/lib/gitea-runner
+        create_home: true
+        shell: /bin/bash
+
+    - name: Check whether runner is registered
+      ansible.builtin.stat:
+        path: /var/lib/gitea-runner/.runner
+      register: runner_registration
+
+    - name: Request runner registration token
+      ansible.builtin.pause:
+        prompt: |
+          Open http://localhost:3000 and complete Gitea installation.
+          Create your repository and enable Actions.
+          Open repository Settings > Actions > Runners.
+          Copy the registration token and paste it here
+        echo: false
+      register: runner_token
+      no_log: true
+      when: not runner_registration.stat.exists
+
+    - name: Register runner
+      become_user: gitea-runner
+      ansible.builtin.command:
+        argv:
+          - /usr/local/bin/gitea-runner
+          - register
+          - --no-interactive
+          - --instance
+          - http://localhost:3000
+          - --name
+          - lab7-runner
+          - --labels
+          - ubuntu-latest:host
+        chdir: /var/lib/gitea-runner
+        creates: /var/lib/gitea-runner/.runner
+      environment:
+        GITEA_RUNNER_REGISTRATION_TOKEN: "{{ runner_token.user_input }}"
+      no_log: true
+      when: not runner_registration.stat.exists
+
+    - name: Create runner service
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/gitea-runner.service
+        mode: "0644"
+        content: |
+          [Unit]
+          Description=Gitea Actions Runner
+          Wants=network-online.target
+          After=network-online.target gitea.service
+
+          [Service]
+          Type=simple
+          User=gitea-runner
+          Group=gitea-runner
+          WorkingDirectory=/var/lib/gitea-runner
+          Environment=HOME=/var/lib/gitea-runner
+          ExecStart=/usr/local/bin/gitea-runner daemon
+          Restart=on-failure
+          RestartSec=5
+
+          [Install]
+          WantedBy=multi-user.target
+
+    - name: Start and enable runner
+      ansible.builtin.systemd_service:
+        name: gitea-runner
+        daemon_reload: true
+        enabled: true
+        state: started
+        
+    - name: Custom debug message
+      debug:
+        msg: "Finished playbook successfully!"
